@@ -7,20 +7,20 @@ import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 const mount=document.getElementById('model3d'),watch=document.getElementById('watch');
 try{
  const renderer=new THREE.WebGLRenderer({alpha:true,antialias:true,powerPreference:'low-power'});
- renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.45;
+ renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05;
  mount.appendChild(renderer.domElement);
  const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(32,1,.01,100);
- scene.add(new THREE.HemisphereLight(0xf6eaff,0x5d3a87,2.5));
- const key=new THREE.DirectionalLight(0xffffff,3);key.position.set(-3,5,6);scene.add(key);
- const rim=new THREE.DirectionalLight(0xb89bff,2.3);rim.position.set(4,2,-3);scene.add(rim);
+ scene.add(new THREE.HemisphereLight(0xf6eaff,0x604080,1.45));
+ const key=new THREE.DirectionalLight(0xffe8ff,1.7);key.position.set(-3,5,6);scene.add(key);
+ const rim=new THREE.DirectionalLight(0xa37be7,1.4);rim.position.set(4,2,-3);scene.add(rim);
  const group=new THREE.Group();scene.add(group);
  const loader=new GLTFLoader();
  loader.load('./ditto.glb',gltf=>{
   const model=gltf.scene;group.add(model);
   const box=new THREE.Box3().setFromObject(model),size=box.getSize(new THREE.Vector3()),center=box.getCenter(new THREE.Vector3());
   model.position.sub(center);
-  const max=Math.max(size.x,size.y,size.z)||1;model.scale.setScalar(2.3/max);
-  camera.position.set(0,0,5.2);camera.lookAt(0,0,0);
+  const max=Math.max(size.x,size.y,size.z)||1;model.scale.setScalar(1.5/max);model.traverse(o=>{if(!o.isMesh)return;const mats=Array.isArray(o.material)?o.material:[o.material];mats.forEach(m=>{if(!m)return;if(m.color)m.color.multiplyScalar(.92);if('roughness'in m)m.roughness=.38;if('metalness'in m)m.metalness=.03;m.needsUpdate=true})});
+  camera.position.set(0,0,5.8);camera.lookAt(0,0,0);
   document.querySelector('.ditto').style.opacity='0';
  },undefined,e=>{console.error('No se pudo cargar ditto.glb',e);mount.style.display='none';document.querySelector('.ditto').style.opacity='1'});
  function resize(){const w=mount.clientWidth,h=mount.clientHeight;if(!w||!h)return;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()}new ResizeObserver(resize).observe(mount);resize();
