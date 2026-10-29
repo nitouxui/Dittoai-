@@ -24,11 +24,28 @@ try{
   document.querySelector('.ditto').style.opacity='0';
  },undefined,e=>{console.error('No se pudo cargar ditto.glb',e);mount.style.display='none';document.querySelector('.ditto').style.opacity='1'});
  function resize(){const w=mount.clientWidth,h=mount.clientHeight;if(!w||!h)return;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()}new ResizeObserver(resize).observe(mount);resize();
- let last=0;function animate(t){requestAnimationFrame(animate);if(t-last<30)return;last=t;const mood=watch.dataset.mood||'idle',s=t*.001;
- group.position.y=Math.sin(s*(mood==='sleep'?.6:1.5))*(mood==='happy'?.07:.025);
- group.rotation.y=Math.sin(s*.65)*.12;group.rotation.z=mood==='think'?-0.12:Math.sin(s*.7)*.025;
- const scale=mood==='surprise'?1.08:mood==='sleep'?.92:1;group.scale.set(scale,scale*(mood==='sleep'?.86:1),scale);
- renderer.render(scene,camera)
+ let last=0,previousMood='idle',transitionAt=0,previousPose=null;
+ const poses={idle:{sx:1,sy:1,sz:1,tilt:0,forward:0,y:0},happy:{sx:1.07,sy:.94,sz:1.04,tilt:0,forward:0,y:.06},listen:{sx:1.035,sy:.96,sz:1.04,tilt:-.035,forward:.13,y:-.035},think:{sx:.98,sy:1.025,sz:1,tilt:-.13,forward:-.035,y:0},surprise:{sx:1.08,sy:1.10,sz:1.06,tilt:0,forward:0,y:.035},sleep:{sx:1.22,sy:.68,sz:1.12,tilt:.045,forward:0,y:-.22}};
+ const pose={...poses.idle};
+ const ease=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
+ const lerp=(a,b,k)=>a+(b-a)*k;
+ function animate(t){
+  requestAnimationFrame(animate);if(t-last<28)return;last=t;
+  const s=t*.001,mood=poses[watch.dataset.mood]?watch.dataset.mood:'idle';
+  if(mood!==previousMood){previousPose={...pose};previousMood=mood;transitionAt=s}
+  const duration=mood==='sleep'?1.6:mood==='happy'?.8:.65;
+  const progress=ease((s-transitionAt)/duration);
+  const target=poses[mood];
+  for(const k of Object.keys(pose))pose[k]=lerp(previousPose?previousPose[k]:poses.idle[k],target[k],progress);
+  if(progress>=1)previousPose=null;
+  const breathe=Math.sin(s*(mood==='sleep'?1.05:2.1));
+  const bounce=mood==='happy'?Math.pow(Math.max(0,Math.sin(s*5.4)),2)*.12:0;
+  const alert=mood==='surprise'?Math.exp(-Math.max(0,s-transitionAt)*5)*.13*Math.sin((s-transitionAt)*19):0;
+  const wobble=mood==='listen'?Math.sin(s*4)*.016:Math.sin(s*1.4)*.009;
+  group.position.set(0,pose.y+breathe*.015+bounce,0);
+  group.rotation.set(pose.forward+Math.sin(s*.9)*.012,Math.sin(s*.6)*(mood==='sleep'?.035:.065),pose.tilt+wobble);
+  group.scale.set(pose.sx*(1+breathe*.009+alert),pose.sy*(1-breathe*.012-alert*.55),pose.sz*(1+breathe*.008));
+  renderer.render(scene,camera);
  }requestAnimationFrame(animate);
 }catch(e){console.error(e);mount.style.display='none';document.querySelector('.ditto').style.opacity='1'}
 </script></body></html>
