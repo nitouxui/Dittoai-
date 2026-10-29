@@ -13,7 +13,7 @@ try{
  scene.add(new THREE.HemisphereLight(0xf6eaff,0x604080,1.45));
  const key=new THREE.DirectionalLight(0xffe8ff,1.7);key.position.set(-3,5,6);scene.add(key);
  const rim=new THREE.DirectionalLight(0xa37be7,1.4);rim.position.set(4,2,-3);scene.add(rim);
- const group=new THREE.Group();scene.add(group);let body=null;const facial=[];
+ const group=new THREE.Group();scene.add(group);let body=null;
  const loader=new GLTFLoader();
  loader.load('./ditto.glb',gltf=>{
   const model=gltf.scene;group.add(model);
@@ -41,7 +41,7 @@ try{
      [nx*hx*.025*upper,hy*.025*upper,z*0+hz*.09*upper],
      [hx*.12*upper*upper,hy*.04*nx*upper,0],
      [nx*hx*.09*upper,hy*.11*upper,nz*hz*.075*upper],
-     [nx*hx*.19*lower,-hy*.21*upper,nz*hz*.12*lower],
+     [nx*hx*.055*lower,-hy*.055*upper,nz*hz*.04*lower],
      [hx*.025*Math.sin(ny*5+nz*2),hy*.018*Math.sin(nx*6),hz*.02*Math.sin(nx*4+ny*3)]
     ];
     for(let j=0;j<names.length;j++){const a=arrays[j],d=deltas[j];a[i*3]=d[0];a[i*3+1]=d[1];a[i*3+2]=d[2]}
@@ -51,45 +51,12 @@ try{
    body.updateMorphTargets();
    window.dittoMorphs=names;
   }
-  // Expresiones faciales sobre las mallas originales de ojos y boca.
-  for(const mesh of meshes.filter(m=>m!==body)){
-   const name=(mesh.name+' '+(mesh.material?.name||'')).toLowerCase();
-   const isEye=name.includes('eye')||mesh.geometry.attributes.position.count<=15;
-   const isMouth=name.includes('mouth')||!isEye;
-   mesh.geometry=mesh.geometry.clone();
-   const geo=mesh.geometry,pos=geo.attributes.position;
-   geo.computeBoundingBox();const bb=geo.boundingBox;
-   const cx=(bb.min.x+bb.max.x)/2,cz=(bb.min.z+bb.max.z)/2;
-   const hx=Math.max((bb.max.x-bb.min.x)/2,.001),hz=Math.max((bb.max.z-bb.min.z)/2,.001);
-   const names=['happy','surprise','sleep','blink','think'];
-   const arrays=names.map(()=>new Float32Array(pos.count*3));
-   for(let i=0;i<pos.count;i++){
-    const x=pos.getX(i),z=pos.getZ(i),nx=(x-cx)/hx,nz=(z-cz)/hz;
-    const d=isEye?[
-      [0,0,(cz-z)*.38],
-      [(x-cx)*.17,0,(z-cz)*.19],
-      [0,0,(cz-z)*.94],
-      [0,0,(cz-z)*.96],
-      [0,0,(z-cz)*.09+hz*.09*nx]
-    ]:[
-      [0,0,hz*.25*Math.abs(nx)-hz*.12*(1-Math.abs(nx))],
-      [(cx-x)*.55,0,(z-cz)*.52],
-      [0,0,(cz-z)*.7],
-      [0,0,0],
-      [hx*.12,0,hz*.1*nx]
-    ];
-    for(let j=0;j<names.length;j++){const a=arrays[j];a[3*i]=d[j][0];a[3*i+1]=d[j][1];a[3*i+2]=d[j][2]}
-   }
-   geo.morphTargetsRelative=true;
-   geo.morphAttributes.position=arrays.map((a,i)=>{const attr=new THREE.Float32BufferAttribute(a,3);attr.name=names[i];return attr});
-   mesh.updateMorphTargets();facial.push(mesh);
-  }
   camera.position.set(0,0,5.8);camera.lookAt(0,0,0);
   document.querySelector('.ditto').style.opacity='0';
  },undefined,e=>{console.error('No se pudo cargar ditto.glb',e);mount.style.display='none';document.querySelector('.ditto').style.opacity='1'});
  function resize(){const w=mount.clientWidth,h=mount.clientHeight;if(!w||!h)return;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()}new ResizeObserver(resize).observe(mount);resize();
  let last=0,previousMood='idle',transitionAt=0,previousPose=null;
- const poses={idle:{sx:1,sy:1,sz:1,tilt:0,forward:0,y:0},happy:{sx:1.07,sy:.94,sz:1.04,tilt:0,forward:0,y:.06},listen:{sx:1.035,sy:.96,sz:1.04,tilt:-.035,forward:.13,y:-.035},think:{sx:.98,sy:1.025,sz:1,tilt:-.13,forward:-.035,y:0},surprise:{sx:1.08,sy:1.10,sz:1.06,tilt:0,forward:0,y:.035},sleep:{sx:1.22,sy:.68,sz:1.12,tilt:.045,forward:0,y:-.22}};
+ const poses={idle:{sx:1,sy:1,sz:1,tilt:0,forward:0,y:0},happy:{sx:1.07,sy:.94,sz:1.04,tilt:0,forward:0,y:.06},listen:{sx:1.035,sy:.96,sz:1.04,tilt:-.035,forward:.13,y:-.035},think:{sx:.98,sy:1.025,sz:1,tilt:-.13,forward:-.035,y:0},surprise:{sx:1.08,sy:1.10,sz:1.06,tilt:0,forward:0,y:.035},sleep:{sx:1.09,sy:.89,sz:1.06,tilt:.025,forward:0,y:-.07}};
  const pose={...poses.idle};
  const ease=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
  const lerp=(a,b,k)=>a+(b-a)*k;
@@ -110,16 +77,6 @@ try{
   group.rotation.set(pose.forward+Math.sin(s*.9)*.012,Math.sin(s*.6)*(mood==='sleep'?.035:.065),pose.tilt+wobble);
   group.scale.set(pose.sx*(1+breathe*.009+alert),pose.sy*(1-breathe*.012-alert*.55),pose.sz*(1+breathe*.008));
   if(body?.morphTargetInfluences){const keys=['happy','listen','think','surprise','sleep','wobble'];for(let i=0;i<keys.length;i++){const goal=keys[i]==='wobble'?.18+.16*Math.sin(s*3.4):(mood===keys[i]?1:0);body.morphTargetInfluences[i]=lerp(body.morphTargetInfluences[i]||0,goal,.14)}}
-  const blinkPhase=s%4.7;
-  const blink=blinkPhase<.17?Math.sin(Math.PI*blinkPhase/.17):0;
-  for(const mesh of facial){
-   const influences=mesh.morphTargetInfluences;if(!influences)continue;
-   const names=['happy','surprise','sleep','blink','think'];
-   for(let i=0;i<names.length;i++){
-    const key=names[i],goal=key==='blink'&&mood!=='sleep'?blink:(mood===key?1:0);
-    influences[i]=lerp(influences[i]||0,goal,key==='blink'?.65:.13);
-   }
-  }
   renderer.render(scene,camera);
  }requestAnimationFrame(animate);
 }catch(e){console.error(e);mount.style.display='none';document.querySelector('.ditto').style.opacity='1'}
